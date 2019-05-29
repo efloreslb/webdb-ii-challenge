@@ -6,6 +6,7 @@ const server = express();
 server.use(express.json());
 server.use(helmet());
 
+
 // Knex Setup
 const knex = require('knex');
 
@@ -19,78 +20,83 @@ const config = {
 
 const db = knex(config);
 
-//Knex Methods - resolve to promises
-// function find() {
-//   return db('zoos');
-// }
-
-// function findById(id) {
-//   return db('zoos').where('id', id);
-// }
-
-// async function execute() {
-//   const users = await find();
-//   console.log(users);
-// }
-
 //execute();
 
 // endpoints here
 
-server.get('/zoos/', (req, res) => {
+server.get('/api/zoos/', (req, res) => {
   db('zoos')
   .then(zoos => {
     res.status(200).json(zoos)
   })
   .catch(err => {
-    console.log(err)
+    console.log(err);
+    res.status(500).json(err)
   })
 });
 
-// server.post('/zoos/', async (req, res) => {
-//   try {
-//     db('zoos').insert(req.body, 'id').then(ids => {
-//       return db('zoos').where({ id : ids[0] }).first().then(zoo => {
-//         res.status(200).json(zoo);
-//       })
-//     })
-//   } catch {
-//     res.status(500).json({error: "There was en error adding the data"})
-//   }
-// })
+server.get('/api/zoos/:id', (req, res) => {
+  db('zoos')
+  .where({ id: req.params.id })
+  .first()
+  .then(zoo => {
+    if(zoo) {
+      res.status(200).json(zoo)
+    } else {
+      res.status(404).json({ message: "Zoo by ID not found" })
+    }
+  })
+  .catch(err => {
+    res.status(500).json({ error: "Error getting zoo by ID" })
+  })
+})
 
-// server.get('/zoos/', async (req, res) => {
-//   try {
-//     db('zoos').then(zoos => {
-//       res.status(200).json(zoos)
-//     });
-//   } catch {
-//     res.status(500).json({error: "There was an error fetching the data"})
-//   }
-// })
+server.post('/api/zoos/', (req,res) => {
+  db('zoos')
+  .insert(req.body, 'id')
+  .then(ids => {
+    db('zoos')
+      .where({id: ids[0]})
+      .first()
+      .then(zoo => {
+        res.status(201).json(zoo)
+      })
+      .catch(err =>{
+        res.status(500).json({ error: "Error posting data" })
+      })
+  })
+})
 
-// server.get('/zoos/:id', async (req, res) => {
-//   try {
+server.delete('/api/zoos/:id', (req, res) => {
+  db('zoos')
+  .where({ id: req.params.id })
+  .del()
+  .then(count => {
+    if (count > 0) {
+      res.status(200).json({ message: `${count} record deleted`})
+    } else {
+      res.status(404).json({ message: "Zoo by ID does not exist"})
+    }
+  })
+  .catch(err => {
+    res.status(500).json({ error: "Error deleting data" })
+  })
+})
 
-//   } catch {
-    
-//   }
-// })
-
-// server.delete('/zoos/:id', async (req, res) => {
-//   try {
-
-//   } catch {
-    
-//   }
-// })
-
-// server.put('/zoos/:id', async (req, res) => {
-//   try {
-
-//   } catch {
-    
-//   }
-// })
+server.put('/api/zoos/:id', (req, res) => {
+  db('zoos')
+  .where({ id: req.params.id })
+  .update(req.body)
+  .then(count => {
+    if(count > 0) {
+      res.status(200).json({ message: `${count} record updated`})
+    } else {
+      res.status(404).json({ message: "Zoo by ID does not exist"})
+    }
+  })
+  .catch(err => {
+    res.status(500).json({ error: "Error updating data" })
+  })
+})
 
 module.exports = server;
